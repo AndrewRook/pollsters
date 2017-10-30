@@ -1,0 +1,59 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+	<head>
+		<title>Poll Tracking</title>
+		<meta charset="utf-8">
+		<script type="text/javascript" src="static/jquery-3.2.1.js"></script>
+		<script type="text/javascript" src="static/d3-3.5.17.js"></script>
+	</head>
+	
+	<body>
+		<script>
+		d3.csv("https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv", function(row) {
+			var date_parser = d3.time.format("%m/%d/%Y");
+			var parsed_row = {};
+			parsed_row["approve"] = +row["approve"];
+			parsed_row["disapprove"] = +row["disapprove"];
+			parsed_row["enddate"] = date_parser.parse(row["enddate"]);
+			parsed_row["grade"] = row["grade"];
+			parsed_row["pollster"] = row["pollster"];
+			parsed_row["population"] = row["population"];
+			parsed_row["samplesize"] = +row["samplesize"];
+			parsed_row["startdate"] = date_parser.parse(row["startdate"]);
+			parsed_row["weight"] = +row["weight"];
+			//console.log(parsed_row);
+			return parsed_row;
+		}, function(error, data) {
+			var rectDemo = d3.select("body").
+				append("svg:svg").
+				attr("width", '90%').
+				attr("height", '90%');
+			
+			rectDemo.append("svg:rect").
+				attr("x", 100).
+				attr("y", 100).
+				attr("height", '50%').
+				attr("width", '50%');
+			console.log(data);
+		});
+		/* d3.csv("https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv", function(row) {
+		   var date_parser = d3.timeParse("%m/%d/%Y");
+		   var parsed_row = {};
+		   parsed_row["approve"] = +row["approve"];
+		   parsed_row["disapprove"] = +row["disapprove"];
+		   parsed_row["enddate"] = date_parser(row["enddate"]);
+		   parsed_row["grade"] = row["grade"];
+		   parsed_row["pollster"] = row["pollster"];
+		   parsed_row["population"] = row["population"];
+		   parsed_row["samplesize"] = +row["samplesize"];
+		   parsed_row["startdate"] = date_parser(row["startdate"]);
+		   parsed_row["weight"] = +row["weight"];
+		   console.log(parsed_row);
+		   return parsed_row;
+		   }, function(error, data) {
+		   console.log(data);
+		   }); */
+		</script>
+		
+	</body>
+</html>
