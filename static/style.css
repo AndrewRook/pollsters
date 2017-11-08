@@ -9,9 +9,16 @@ body {
   shape-rendering: crispEdges;
 }
 
-/*.x.axis path {
-  display: none;
-}*/
+.dots path {
+    fill-opacity: 0.3;
+    stroke: none;
+}
+.dots.approve {
+    fill: #009f29;
+}
+.dots.disapprove {
+    fill: #ff7400;
+}
 
 .line {
   fill: none;
