@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+	<head>
+		<title>Poll Tracking</title>
+		<meta charset="utf-8">
+		<script type="text/javascript" src="static/jquery-3.2.1.js"></script>
+		<script type="text/javascript" src="static/d3-3.5.17.js"></script>
+
+		<link rel="stylesheet" type="text/css" href="static/style.css">
+	</head>
+	
+	<body>
+		<script>
+
+		
+		var margin = {top: 20, right: 50, bottom: 30, left: 50},
+			width = 960 - margin.left - margin.right,
+			height = 500 - margin.top - margin.bottom;
+		
+		var parseDate = d3.time.format("%m/%d/%Y").parse,
+			bisectDate = d3.bisector(function(d) { return d.enddate; }).left,
+			formatValue = d3.format(",.2f");
+		
+		var x = d3.time.scale()
+			.range([0, width]);
+		
+		var y = d3.scale.linear()
+			.range([height, 0]);
+
+		
+			
+		function brushmove(p) {
+			var extent = brush.extent();
+			var x1 = extent[0][1];
+			var x2 = extent[1][1];
+			var yvals = y.domain();
+			brush.extent([[x1, yvals[0]], [x2, yvals[1]]]);
+			svg.selectAll(".dots").classed("selected", function(d) {
+				//console.log("d: ", d, "p: ", p);
+				return false;
+			});
+		}
+
+		function brushstart() {
+			svg.selectAll(".extent")
+				.y(0)
+				.height(height);
+		}
+
+		var brush = d3.svg.brush();
+		brush.x(x);
+		brush.y(y);
+		//brush.on("brush", brushstart);
+		brush.on("brush", brushmove);
+		/* 
+		   var brush = d3.svg.brush()
+		   .x(x)
+		   .y(y)
+		   //.on("brushstart", brushstart)
+		   .on("brush", brushmove);
+		   //.on("brushend", brushend); */
+
+		
+		var xAxis = d3.svg.axis()
+			.scale(x)
+			.orient("bottom");
+		
+		var yAxis = d3.svg.axis()
+			.scale(y)
+			.orient("left");
+		
+		var svg = d3.select("body").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+			.append("g")
+			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+		var min_rating = 100;
+		var max_rating = 0;
+		
+		d3.csv("https://projects.fivethirtyeight.com/trump-approval-data/approval_polllist.csv", function(row) {
+			var parsed_row = {};
+			parsed_row["approve"] = +row["approve"];
+			parsed_row["disapprove"] = +row["disapprove"];
+			parsed_row["enddate"] = parseDate(row["enddate"]);
+			parsed_row["grade"] = row["grade"];
+			parsed_row["pollster"] = row["pollster"];
+			parsed_row["population"] = row["population"];
+			parsed_row["samplesize"] = +row["samplesize"];
+			parsed_row["startdate"] = parseDate(row["startdate"]);
+			parsed_row["weight"] = +row["weight"];
+			if (parsed_row["approve"] < min_rating) {
+				min_rating = parsed_row["approve"];
+			}
+			if (parsed_row["disapprove"] < min_rating) {
+				min_rating = parsed_row["disapprove"];
+			}
+			if (parsed_row["approve"] > max_rating) {
+				max_rating = parsed_row["approve"];
+			}
+			if (parsed_row["disapprove"] > max_rating) {
+				max_rating = parsed_row["disapprove"]
+			}
+			//console.log(parsed_row);
+			return parsed_row;
+		}, function(error, data) {
+			data.sort(function(a, b) {
+				return a.enddate - b.enddate;
+			});
+			
+			x.domain([data[0].enddate, data[data.length - 1].enddate]);
+			//y.domain(d3.extent(data, function(d) { return d.approve; }));
+			y.domain([min_rating - 10, max_rating + 10]);
+
+			svg.append("g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+			
+			svg.append("g")
+				.attr("class", "y axis")
+				.call(yAxis)
+				.append("text");
+
+			var approve_transform = function(d) {
+				return "translate(" + x(d.enddate) + "," + y(d.approve) + ")";};
+			
+			var disapprove_transform = function(d) {
+				return "translate(" + x(d.enddate) + "," + y(d.disapprove) + ")";};
+			svg.append("g")
+				.attr("class", "dots approve")
+				.selectAll("path")
+				.data(data)
+				.enter()
+				.append("path")
+				.attr("transform", approve_transform)
+				.attr("d", d3.svg.symbol().size(20));
+			svg.append("g")
+				.attr("class", "dots disapprove")
+				.selectAll("path")
+				.data(data)
+				.enter()
+				.append("path")
+				.attr("transform", disapprove_transform)
+				.attr("d", d3.svg.symbol().size(20));
+
+			svg.append("g")
+				.attr("class", "brush")
+				.call(brush);
+			/* 
+			   var focus = svg.append("g")
+			   .attr("class", "focus")
+			   .style("display", "none");
+
+			   focus.append("circle")
+			   .attr("r", 4.5);
+			   
+			   focus.append("text")
+			   .attr("x", 9)
+			   .attr("dy", ".35em");
+			   
+			   svg.append("rect")
+			   .attr("class", "overlay")
+			   .attr("width", width)
+			   .attr("height", height)
+			   .on("mouseover", function() { focus.style("display", null); })
+			   .on("mouseout", function() { focus.style("display", "none"); })
+			   .on("mousemove", mousemove);
+
+			   function mousemove() {
+			   var x0 = x.invert(d3.mouse(this)[0]),
+			   i = bisectDate(data, x0, 1),
+			   d0 = data[i - 1],
+			   d1 = data[i],
+			   d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+			   focus.attr("transform", "translate(" + x(d.enddate) + "," + y(d.approve) + ")");
+			   focus.select("text").text(d.approve);
+			   } */
+			
+		});
+		</script>
+		
+	</body>
+</html>
