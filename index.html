@@ -81,33 +81,17 @@
 				.extent([[0, 0], [width, height]])
 				.on("brush end", brushed);
 			function brushed () {
-				//var extent = brush.extent();
-				var extent = d3.event.selection.map(x.invert, x);
-				//console.log(extent);
-				console.log(focus.selectAll(".dots").data());
+				var extent = d3.event.selection;
+				var test = 0;
 				focus.selectAll(".dots")
-					//.data().enter()
 					.classed("selected", function(d) {
-						//console.log(d);
-						return true;
-						//return extent[0] <= d[0] && d[0] <= extent[1];
+						return (extent[0] <= x(d.enddate) && extent[1] >= x(d.enddate))
 					});
-				//focus.selectAll(".dots")
-					//	.classed("selected", false);
 				
 			}
-
-			
 			focus.append("g")
 				.attr("class", "brush")
 				.call(brush);
-			/* data.sort(function(a, b) {
-			   return a.enddate - b.enddate;
-			   });
-			   console.log(data[0]);
-			   x.domain([data[0].enddate, data[data.length - 1].enddate]);
-			   y.domain([min_rating - 10, max_rating + 10]); */
-
 			
 		});
 		</script>
