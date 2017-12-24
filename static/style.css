@@ -9,7 +9,7 @@ body {
   shape-rendering: crispEdges;
 }
 
-.dots path {
+.dots {
     fill-opacity: 0.3;
     stroke: none;
 }
@@ -20,20 +20,13 @@ body {
     fill: #ff7400;
 }
 
-.line {
-  fill: none;
-  stroke: steelblue;
-  stroke-width: 1.5px;
+.dots.selected {
+    fill-opacity: 0.9;
 }
 
 .overlay {
   fill: none;
   pointer-events: all;
-}
-
-.focus circle {
-  fill: none;
-  stroke: steelblue;
 }
 
 .extent {

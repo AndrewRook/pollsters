@@ -14,25 +14,27 @@
 		<script>
 
 		
-		var margin = {top: 20, right: 50, bottom: 30, left: 50},
-			width = 960 - margin.left - margin.right,
-			height = 500 - margin.top - margin.bottom;
+		var margin = {top: 20, right: 20, bottom: 110, left: 40};
+		var margin2 = {top: 430, right: margin.right,
+			bottom: 30, left: margin.left};
+		var svg_width = 960;
+		var svg_height = 500;
+		var width = svg_width - margin.left - margin.right;
+		var height = svg_height - margin.top - margin.bottom;
+		var height2 = svg_height - margin2.top - margin2.bottom;
 		
 		var svg = d3.select("body").append("svg")
-			.attr("width", width + margin.left + margin.right)
-			.attr("height", height + margin.top + margin.bottom)
-			.append("g")
-			.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+			.attr("width", svg_width)
+			.attr("height", svg_height);
+		var focus = svg.append("g")
+			.attr("transform",
+				"translate(" + margin.left + "," + margin.top + ")"
+			);
 		var x = d3.scaleTime().range([0, width]);
 		var y = d3.scaleLinear().range([height, 0]);
 
 		var xAxis = d3.axisBottom(x);
 		var yAxis = d3.axisLeft(y);
-
-		var brush = d3.brushX()
-			.extent([[0, 0], [width, height]])
-			.on("brush end", brushed);
-		var brushed;
 		
 		var min_rating = 100;
 		var max_rating = 0;
@@ -41,9 +43,64 @@
 			if (error) {
 				throw error;
 			}
-			console.log(data);
-			x.domain(d3.extent(data, function(d) { return data.length; }));
+			//console.log(data);
+			console.log(d3.extent(data, function(d) { return d.enddate; }));
+			x.domain(d3.extent(data, function(d) { return d.enddate; }));
 			y.domain([min_rating - 10, max_rating + 10]);
+
+			focus.append("g")
+				.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+			focus.append("g")
+				.call(yAxis);
+			
+			var approve_transform = function(d) {
+				return "translate(" + x(d.enddate) + "," + y(d.approve) + ")";};
+			
+			var disapprove_transform = function(d) {
+				return "translate(" + x(d.enddate) + "," + y(d.disapprove) + ")";};
+			focus.append("g")
+				.selectAll("path")
+				.data(data)
+				.enter()
+				.append("path")
+				.attr("class", "dots approve")
+				.attr("transform", approve_transform)
+				.attr("d", d3.symbol().size(20));
+			focus.append("g")
+				.selectAll("path")
+				.data(data)
+				.enter()
+				.append("path")
+				.attr("class", "dots disapprove")
+				.attr("transform", disapprove_transform)
+				.attr("d", d3.symbol().size(20));
+
+			
+			var brush = d3.brushX()
+				.extent([[0, 0], [width, height]])
+				.on("brush end", brushed);
+			function brushed () {
+				//var extent = brush.extent();
+				var extent = d3.event.selection.map(x.invert, x);
+				//console.log(extent);
+				console.log(focus.selectAll(".dots").data());
+				focus.selectAll(".dots")
+					//.data().enter()
+					.classed("selected", function(d) {
+						//console.log(d);
+						return true;
+						//return extent[0] <= d[0] && d[0] <= extent[1];
+					});
+				//focus.selectAll(".dots")
+					//	.classed("selected", false);
+				
+			}
+
+			
+			focus.append("g")
+				.attr("class", "brush")
+				.call(brush);
 			/* data.sort(function(a, b) {
 			   return a.enddate - b.enddate;
 			   });
