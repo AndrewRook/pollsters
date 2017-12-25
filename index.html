@@ -55,10 +55,10 @@
 				.call(yAxis);
 			
 			var approve_transform = function(d) {
-				return "translate(" + x(d.enddate) + "," + y(d.approve) + ")";};
+				return "translate(" + x(d.enddate) + "," + y(d.displayed_approve) + ")";};
 			
 			var disapprove_transform = function(d) {
-				return "translate(" + x(d.enddate) + "," + y(d.disapprove) + ")";};
+				return "translate(" + x(d.enddate) + "," + y(d.displayed_disapprove) + ")";};
 			focus.append("g")
 				.selectAll("path")
 				.data(data)
@@ -79,7 +79,8 @@
 			
 			var brush = d3.brushX()
 				.extent([[0, 0], [width, height]])
-				.on("brush end", brushed);
+				.on("brush", brushed)
+				.on("end", update);
 			function brushed () {
 				var extent = d3.event.selection;
 				var test = 0;
@@ -88,6 +89,72 @@
 						return (extent[0] <= x(d.enddate) && extent[1] >= x(d.enddate))
 					});
 				
+			}
+			function update () {
+				var selected_dots = focus.selectAll(".dots.selected");
+				//Essentially a defaultdict:
+				var stats_by_pollster = new Proxy({}, {
+					get: (target, name) => name in target ? target[name] : {
+						"approve_sum": 0,
+						"disapprove_sum": 0,
+						"poll_count": 0
+					}
+				});
+				var global_approve_sum = 0.;
+				var global_disapprove_sum = 0.;
+				var global_count = 0.;
+				selected_dots.each(function(d, i) {
+					curr_stats = stats_by_pollster[d.pollster];
+					curr_stats["approve_sum"] += d.approve;
+					curr_stats["disapprove_sum"] += d.disapprove;
+					curr_stats["poll_count"] += 1;
+					stats_by_pollster[d.pollster] = curr_stats;
+					global_approve_sum += d.approve;
+					global_disapprove_sum += d.disapprove;
+					global_count += 1;
+				});
+				var global_approve_average = global_approve_sum / global_count;
+				var global_disapprove_average = global_disapprove_sum / global_count;
+				var pollster_rescale = new Proxy({}, {
+					get: (target, name) => name in target ? target[name] : {
+						"approve": 0,
+						"disapprove": 0
+					}
+				});
+				for (const pollster in stats_by_pollster) {
+					var curr_stats = stats_by_pollster[pollster];
+					var pollster_approve_average = curr_stats.approve_sum / curr_stats.poll_count;
+					var pollster_disapprove_average = curr_stats.disapprove_sum / curr_stats.poll_count;
+					pollster_rescale[pollster] = {
+						"approve": pollster_approve_average - global_approve_average,
+						"disapprove": pollster_disapprove_average - global_disapprove_average
+					};
+					
+				}
+				//focus.selectAll(".dots.approve").each(function(d, i) {
+				//   d.displayed_approve = d.approve - pollster_rescale[d.pollster].approve;
+				//   });
+				for (var i = 0; i < data.length; i++) {
+					var curr_data = data[i];
+					curr_data["displayed_approve"] = (
+						curr_data.approve - pollster_rescale[curr_data.pollster].approve
+					);
+					curr_data["displayed_disapprove"] = (
+						curr_data.disapprove - pollster_rescale[curr_data.pollster].disapprove
+					);
+					data[i] = curr_data;
+				}
+				console.log(data);
+				//console.log(selected_dots.data())
+				var approve_dots = focus.selectAll(".dots.approve").data(data);
+				approve_dots
+					.attr("transform", approve_transform);
+				var disapprove_dots = focus.selectAll(".dots.disapprove").data(data);
+				disapprove_dots
+					.attr("transform", disapprove_transform);
+				//approve_dots.transition().duration(750);
+				//console.log(pollster_rescale);
+				console.log(selected_dots.data().length, global_approve_average, global_disapprove_average);
 			}
 			focus.append("g")
 				.attr("class", "brush")
